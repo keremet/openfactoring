@@ -1,0 +1,91 @@
+Установить OI
+
+sudo pkg install pkg:/web/amp
+
+Разместить содержимое openfactoring_miniXXXXXX.7z в /var/apache2/2.2/htdocs/openfactoring_mini
+	Настроить HTTPS
+svcadm disable apache22
+svccfg -s apache22 setprop httpd/ssl = boolean: 'true'
+
+cd /etc/apache2/2.2/
+sudo openssl req -new -x509 -out server.crt -keyout server.key
+
+Будут созданы 2 файла: server.crt и server.key, защищенные парольной фразой
+
+Убрать парольную фразу:
+sudo cp server.key{,.orig}
+sudo openssl rsa -in server.key.orig -out server.key
+sudo rm server.key.orig
+
+Скопировать образцовый конфигурационный файл в каталог, откуда эти файлы подгружаются для использования
+sudo cp /etc/apache2/2.2/samples-conf.d/ssl.conf /etc/apache2/2.2/conf.d/
+
+svcadm enable apache22
+
+
+Открыть в Firefox https://localhost/openfactoring_mini
+
+
+
+Для подключения к Oracle
+1. скачать Oracle instantclient
+basic-10.2.0.5.0-solaris-x86.zip      jdbc-10.2.0.5.0-solaris-x86.zip  sqlplus-10.2.0.5.0-solaris-x86.zip
+basiclite-10.2.0.5.0-solaris-x86.zip  sdk-10.2.0.5.0-solaris-x86.zip
+
+2.Скомпилить PHP с поддержкой Apache и Oracle
+ln -s /home/keremet/oracle/instantclient_10_2//libclntsh.so.10.1 /home/keremet/oracle/instantclient_10_2//libclntsh.so
+export LD_LIBRARY_PATH=/home/keremet/oracle/instantclient_10_2/
+keremet@openindiana:~/oracle/instantclient_10_2$ sudo cp *.so /usr/lib/
+pkg install pkg:/compatibility/ucb
+checking for known struct flock definition... configure: error: Don't know how to define struct flock on this system, set --enable-opcache=no
+tar xf php-5.5.4.tar.bz2
+cd php-5.5.4
+CFLAGS="-O2" CPPFLAGS="-O2" ./configure --with-apxs2 -with-oci8=instantclient,/home/keremet/oracle/instantclient_10_2/ --enable-opcache=no
+
+
+keremet@openindiana:~/compile/php-5.5.4$ make
+/bin/sh /home/keremet/compile/php-5.5.4/libtool --silent --preserve-dup-deps --mode=compile cc  -DSSL_EXPERIMENTAL -DSSL_ENGINE -I/usr/apache2/2.2/include  -DSOLARIS2=11 -D_POSIX_PTHREAD_SEMANTICS -mt -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/apr/1.3/include   -I/usr/apr-util/1.3/include -I/usr/include -Isapi/apache2handler/ -I/home/keremet/compile/php-5.5.4/sapi/apache2handler/ -DPHP_ATOM_INC -I/home/keremet/compile/php-5.5.4/include -I/home/keremet/compile/php-5.5.4/main -I/home/keremet/compile/php-5.5.4 -I/home/keremet/compile/php-5.5.4/ext/date/lib -I/home/keremet/compile/php-5.5.4/ext/ereg/regex -I/usr/include/libxml2 -I/home/keremet/oracle/instantclient_10_2//sdk/include -I/home/keremet/compile/php-5.5.4/ext/sqlite3/libsqlite -I/home/keremet/compile/php-5.5.4/TSRM -I/home/keremet/compile/php-5.5.4/Zend  -O2 -D_POSIX_PTHREAD_SEMANTICS  -I/usr/include -O2   -c /home/keremet/compile/php-5.5.4/sapi/apache2handler/mod_php5.c -o sapi/apache2handler/mod_php5.lo 
+cc1: error: invalid option `t'
+make: *** [sapi/apache2handler/mod_php5.lo] Ошибка 1
+
+Убрать -mt. Ниже 4 скорректированных команды
+keremet@openindiana:~/compile/php-5.5.4$ 
+/bin/sh /home/keremet/compile/php-5.5.4/libtool --silent --preserve-dup-deps --mode=compile cc  -DSSL_EXPERIMENTAL -DSSL_ENGINE -I/usr/apache2/2.2/include  -DSOLARIS2=11 -D_POSIX_PTHREAD_SEMANTICS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/apr/1.3/include   -I/usr/apr-util/1.3/include -I/usr/include -Isapi/apache2handler/ -I/home/keremet/compile/php-5.5.4/sapi/apache2handler/ -DPHP_ATOM_INC -I/home/keremet/compile/php-5.5.4/include -I/home/keremet/compile/php-5.5.4/main -I/home/keremet/compile/php-5.5.4 -I/home/keremet/compile/php-5.5.4/ext/date/lib -I/home/keremet/compile/php-5.5.4/ext/ereg/regex -I/usr/include/libxml2 -I/home/keremet/oracle/instantclient_10_2//sdk/include -I/home/keremet/compile/php-5.5.4/ext/sqlite3/libsqlite -I/home/keremet/compile/php-5.5.4/TSRM -I/home/keremet/compile/php-5.5.4/Zend  -O2 -D_POSIX_PTHREAD_SEMANTICS  -I/usr/include -O2   -c /home/keremet/compile/php-5.5.4/sapi/apache2handler/mod_php5.c -o sapi/apache2handler/mod_php5.lo
+
+/bin/sh /home/keremet/compile/php-5.5.4/libtool --silent --preserve-dup-deps --mode=compile cc  -DSSL_EXPERIMENTAL -DSSL_ENGINE -I/usr/apache2/2.2/include  -DSOLARIS2=11 -D_POSIX_PTHREAD_SEMANTICS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/apr/1.3/include   -I/usr/apr-util/1.3/include -I/usr/include -Isapi/apache2handler/ -I/home/keremet/compile/php-5.5.4/sapi/apache2handler/ -DPHP_ATOM_INC -I/home/keremet/compile/php-5.5.4/include -I/home/keremet/compile/php-5.5.4/main -I/home/keremet/compile/php-5.5.4 -I/home/keremet/compile/php-5.5.4/ext/date/lib -I/home/keremet/compile/php-5.5.4/ext/ereg/regex -I/usr/include/libxml2 -I/home/keremet/oracle/instantclient_10_2//sdk/include -I/home/keremet/compile/php-5.5.4/ext/sqlite3/libsqlite -I/home/keremet/compile/php-5.5.4/TSRM -I/home/keremet/compile/php-5.5.4/Zend  -O2 -D_POSIX_PTHREAD_SEMANTICS  -I/usr/include -O2   -c /home/keremet/compile/php-5.5.4/sapi/apache2handler/sapi_apache2.c -o sapi/apache2handler/sapi_apache2.lo 
+
+
+
+/bin/sh /home/keremet/compile/php-5.5.4/libtool --silent --preserve-dup-deps --mode=compile cc  -DSSL_EXPERIMENTAL -DSSL_ENGINE -I/usr/apache2/2.2/include  -DSOLARIS2=11 -D_POSIX_PTHREAD_SEMANTICS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/apr/1.3/include   -I/usr/apr-util/1.3/include -I/usr/include -Isapi/apache2handler/ -I/home/keremet/compile/php-5.5.4/sapi/apache2handler/ -DPHP_ATOM_INC -I/home/keremet/compile/php-5.5.4/include -I/home/keremet/compile/php-5.5.4/main -I/home/keremet/compile/php-5.5.4 -I/home/keremet/compile/php-5.5.4/ext/date/lib -I/home/keremet/compile/php-5.5.4/ext/ereg/regex -I/usr/include/libxml2 -I/home/keremet/oracle/instantclient_10_2//sdk/include -I/home/keremet/compile/php-5.5.4/ext/sqlite3/libsqlite -I/home/keremet/compile/php-5.5.4/TSRM -I/home/keremet/compile/php-5.5.4/Zend  -O2 -D_POSIX_PTHREAD_SEMANTICS  -I/usr/include -O2   -c /home/keremet/compile/php-5.5.4/sapi/apache2handler/apache_config.c -o sapi/apache2handler/apache_config.lo 
+
+
+/bin/sh /home/keremet/compile/php-5.5.4/libtool --silent --preserve-dup-deps --mode=compile cc  -DSSL_EXPERIMENTAL -DSSL_ENGINE -I/usr/apache2/2.2/include  -DSOLARIS2=11 -D_POSIX_PTHREAD_SEMANTICS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -I/usr/apr/1.3/include   -I/usr/apr-util/1.3/include -I/usr/include -Isapi/apache2handler/ -I/home/keremet/compile/php-5.5.4/sapi/apache2handler/ -DPHP_ATOM_INC -I/home/keremet/compile/php-5.5.4/include -I/home/keremet/compile/php-5.5.4/main -I/home/keremet/compile/php-5.5.4 -I/home/keremet/compile/php-5.5.4/ext/date/lib -I/home/keremet/compile/php-5.5.4/ext/ereg/regex -I/usr/include/libxml2 -I/home/keremet/oracle/instantclient_10_2//sdk/include -I/home/keremet/compile/php-5.5.4/ext/sqlite3/libsqlite -I/home/keremet/compile/php-5.5.4/TSRM -I/home/keremet/compile/php-5.5.4/Zend  -O2 -D_POSIX_PTHREAD_SEMANTICS  -I/usr/include -O2   -c /home/keremet/compile/php-5.5.4/sapi/apache2handler/php_functions.c -o sapi/apache2handler/php_functions.lo 
+
+
+sudo make install
+
+Вот модуль для апача: /usr/apache2/2.2/libexec/libphp5.so
+Поставится и заменит текущий автоматически
+
+Заполнить /var/opt/oracle/tnsnames.ora
+
+Скрипт для проверки
+<?php
+//Должна быть версия 5.5.4
+echo 'Текущая версия PHP: ' . phpversion();
+
+// Выводит строку типа '2.0' или ничего, если расширение не подключено
+echo phpversion('tidy');
+if ($c=OCILogon("user", "passwd", "tnsname")) { 
+  echo "Successfully connected to Oracle.\n"; 
+  OCILogoff($c); 
+} else { 
+  $err = OCIError(); 
+  echo "Oracle Connect Error " . $err[text]; 
+} 
+
+?>
+
+Для корректного отображения русских букв надо написать в php-коде:
+      putenv("NLS_LANG=AMERICAN_AMERICA.UTF8");
+      putenv("LANG=ru_RU.UTF-8");

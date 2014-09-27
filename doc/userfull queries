@@ -1,0 +1,6 @@
+delete from accounts where closed is not null;
+
+select * from invoice where payed is null and debitor_cust_id=8;
+
+INSERT INTO documents(agr_id,class_op,doc_type,value_date,amount,deb_acc_id,cr_acc_id,nazn_pl)
+VALUES(NULL,NULL,NULL,NULL,10000,NULL,61212810000000300008,NULL);

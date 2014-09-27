@@ -1,0 +1,1 @@
+R:\VB6\vbs\odtfiller.exe %1 xxx R:\VB6\shablon\
