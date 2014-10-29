@@ -11,9 +11,13 @@ $agr_id = $_GET['agr_id'];
 <?php
 include "user_styles.php";
 include "localdb.php";
-if(localdb::connect()==null) die('Ошибка подключения к БД');
+try{
+	$db = new localdb();
+}catch (Exception $e) {
+	die($e->getMessage());		
+}
 if($agr_id!=null){	
-	$agr = localdb::getAgr($agr_id);
+	$agr = $db->getAgr($agr_id);
 }
 ?>
 
@@ -30,7 +34,7 @@ function deleteRepayJS(id) {
 </head><body>
 <?php
 if(isset($_POST['r_id'])&&($_POST['r_id']>0)){
-	echo localdb::deleteRepay($_POST['r_id']);
+	echo $db->deleteRepay($_POST['r_id']);
 }
 	echo '<form  id="main_form" method="post" action="repays.php?agr_id='.$agr_id.'">'
 ?>
@@ -53,7 +57,7 @@ if($agr_id!=null){
 	include "oft_table.php";
 	oftTable::init('Списания договора '.$agr['urid_id'],'tblDebitors');
 	oftTable::header(array('Внутренний номер','Дата опердня','Фактическая дата создания','Действия'));
-	foreach (localdb::getRepays($agr_id) as $i => $value) {
+	foreach ($db->getRepays($agr_id) as $i => $value) {
 		oftTable::row(array(
 			 '<p align="RIGHT">'.$value['id'].' <a href="reports.php?rep=rasp_repay_agr&header_id='.$value['id'].'">Распоряжение</a>',
 			 '<p align="RIGHT">'.$value['oper_date'],

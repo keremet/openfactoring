@@ -1,5 +1,4 @@
 <?php
-/*Лимит не синхронизируется при вводе каждой накладной. Предположение - несколько экономистов не могут одновременно заносить накладные для одной пары клиент-дебитор*/
 session_start();
 if(
 	isset($_POST['urid_id']) && 
@@ -12,18 +11,22 @@ if(
 	isset($_POST['next_reg_num'])
 ){	
 	include "localdb.php";
-	if(localdb::connect()==null) die('Ошибка подключения к БД');
+	try{
+		$db = new localdb();
+	}catch (Exception $e) {
+		die($e->getMessage());		
+	}
 	if($_POST['agr_id']=='')
-		localdb::insertAgr($_POST['urid_id'], $_POST['signed_cor'], $_POST['cust_id'], $_POST['next_reg_num'], $_POST['acc_cur'], $_POST['acc47401'], $_POST['comfin'], $_POST['penya_cl'], $_POST['fct_type']);		
+		$db->insertAgr($_POST['urid_id'], $_POST['signed_cor'], $_POST['cust_id'], $_POST['next_reg_num'], $_POST['acc_cur'], $_POST['acc47401'], $_POST['comfin'], $_POST['penya_cl'], $_POST['fct_type']);		
 	else{
 		if($_POST['oper_type']=='delete')
-			localdb::deleteAgr($_POST['agr_id']);
+			$db->deleteAgr($_POST['agr_id']);
 		else if($_POST['oper_type']=='delete_deb')
-			localdb::deleteDebitor($_POST['agr_id'], $_POST['deb_cust_id']);
+			$db->deleteDebitor($_POST['agr_id'], $_POST['deb_cust_id']);
 		else if($_POST['oper_type']=='update'){
-			localdb::updateAgr($_POST['agr_id'], $_POST['urid_id'], $_POST['signed_cor'], $_POST['cust_id'], $_POST['next_reg_num'], $_POST['acc_cur'], $_POST['acc47401'], $_POST['comfin'], $_POST['penya_cl']);
+			$db->updateAgr($_POST['agr_id'], $_POST['urid_id'], $_POST['signed_cor'], $_POST['cust_id'], $_POST['next_reg_num'], $_POST['acc_cur'], $_POST['acc47401'], $_POST['comfin'], $_POST['penya_cl']);
 			if (isset($_POST['arr_debs'])){
-				$debs = localdb::getDebitors($_POST['agr_id']);
+				$debs = $db->getDebitors($_POST['agr_id']);
 				foreach(json_decode($_POST['arr_debs'],true) as $i => $v){
 					$f_found=0;
 					foreach($debs as $i_debs =>$v_debs){
@@ -38,7 +41,7 @@ if(
 								($v_debs['penya']!=$v['penya'])||
 								($v_debs['fct_type']!=$v['fct_type'])
 							){
-								localdb::updateDebitor($_POST['agr_id'], $v['cust_id'], $v['lim'], $v['acc61212'], $v['deliv_agr_id'], $v['deliv_agr_date'], 
+								$db->updateDebitor($_POST['agr_id'], $v['cust_id'], $v['lim'], $v['acc61212'], $v['deliv_agr_id'], $v['deliv_agr_date'], 
 			$v['com1'], $v['srok_otsr'], $v['penya'], $v['fct_type']);
 							}
 							$f_found=1;
@@ -46,7 +49,7 @@ if(
 						}
 					}
 					if($f_found==0){
-						localdb::insertDebitor($_POST['agr_id'], $v['cust_id'], $v['lim'], $v['acc61212'], $v['deliv_agr_id'], $v['deliv_agr_date'], 
+						$db->insertDebitor($_POST['agr_id'], $v['cust_id'], $v['lim'], $v['acc61212'], $v['deliv_agr_id'], $v['deliv_agr_date'], 
 			$v['com1'], $v['srok_otsr'], $v['penya'], $v['fct_type']);
 					}
 				}
@@ -245,11 +248,15 @@ include "user_styles.php";
 <table border="0" cellpadding="0" cellspacing="2">
 <?php	
 include "localdb.php";
-if(localdb::connect()==null) die('Ошибка подключения к БД');
-if($agr_id!=null){	
-	$agr = localdb::getAgr($agr_id);
+try{
+	$db = new localdb();
+}catch (Exception $e) {
+	die($e->getMessage());		
 }
-echo '<b>'.(($agr['fct_type']==1)?"Реверсивный":"Обычный").'<b><tr><td>Юридический номер<td><input id="urid_id" name="urid_id" size="16" type="text" maxlength="16" value="'.(isset($agr['urid_id'])?$agr['urid_id']:(localdb::getNextAgrNumber())).'">
+if($agr_id!=null){	
+	$agr = $db->getAgr($agr_id);
+}
+echo '<b>'.(($agr['fct_type']==1)?"Реверсивный":"Обычный").'<b><tr><td>Юридический номер<td><input id="urid_id" name="urid_id" size="16" type="text" maxlength="16" value="'.(isset($agr['urid_id'])?$agr['urid_id']:($db->getNextAgrNumber())).'">
 <tr><td>Дата подписания<td><input id="signed" name="signed"  size="6" type="text" maxlength="6" onkeyup="return proverka_dat(this);" onchange="return proverka_dat(this);"'.(isset($agr['signed'])?' value="'.$agr['signed'].'"':'').'> '.(isset($agr['signed_h'])?$agr['signed_h']:'').'
 <tr><td>Номер клиента<td><input id="cust_id"  name="cust_id" size="10" type="text" maxlength="10" onkeyup="return proverka_dat(this);" onchange="return proverka_dat(this);"'.(isset($agr['cust_id'])?' value="'.$agr['cust_id'].'"':'').'>
 <tr><td>Следующий номер реестра<td><input id="next_reg_num"  name="next_reg_num" size="10" type="text" maxlength="10" onkeyup="return proverka_dat(this);" onchange="return proverka_dat(this);" value="'.(isset($agr['next_reg_num'])?$agr['next_reg_num']:'1').'">
@@ -280,7 +287,7 @@ if(($agr_id!=null)&&($agr['fct_type']!=1)){
 	include "oft_table.php";
 	oftTable::init('Дебиторы','tblDebitors');
 	oftTable::header(array('Код клиента','Название клиента','Лимит','61212','Договор поставки','Дата договора поставки', 'Единовременная комиссия','Срок отсрочки','Пеня','Тип факторинга','Действия'));
-	foreach (localdb::getDebitors($agr_id) as $i => $value) {
+	foreach ($db->getDebitors($agr_id) as $i => $value) {
 		oftTable::row(array(
 			 '<p align="LEFT"><input type="text" size=10  onkeyup="return proverka_dat(this);" onchange="return proverka_dat(this);" value="'.$value['cust_id'].'">'
 			,'<p align="LEFT">'.$value['NAME_CYR']

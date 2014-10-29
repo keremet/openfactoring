@@ -23,9 +23,13 @@ include "user_styles.php";
 	include "oft_table.php";
 	include "financial.php";
 	include "localdb.php";
-	if(localdb::connect()==null) die('Ошибка подключения к БД');	
+	try{
+		$db = new localdb();
+	}catch (Exception $e) {
+		die($e->getMessage());		
+	}	
 
-	$reg = localdb::getRegister($_GET['id']);	
+	$reg = $db->getRegister($_GET['id']);	
 ?>
 
 <table style="page-break-before: always;" width="462" border="0" cellpadding="0" cellspacing="0">
@@ -40,15 +44,15 @@ include "user_styles.php";
 			<pre style="text-align: left;"><a href="exit.php"><font face="Liberation Mono, monospace"><font size="2">Выход</font></font></a></pre>
 		</td>
 		<td>
-			<pre style="text-align: left;"><font face="Liberation Mono, monospace"><font size="2"><?php echo localdb::getOperDay(); ?></font></font></pre>
+			<pre style="text-align: left;"><font face="Liberation Mono, monospace"><font size="2"><?php echo $db->getOperDay(); ?></font></font></pre>
 		</td>		
 	</tr>
 </table>
 <p align="center">
 <?php	
-	oftTable::init('Накладные реестра №'.$reg['num'].' от '.$reg['d'].' по договору '.localdb::getAgrUridId($reg['agr_id']));
+	oftTable::init('Накладные реестра №'.$reg['num'].' от '.$reg['d'].' по договору '.$db->getAgrUridId($reg['agr_id']));
 	oftTable::header(array('Номер','Дата','Дебитор','Сумма','НДС'));
-	foreach(localdb::getRegisterInvoices($_GET['id']) as $i => $v){
+	foreach($db->getRegisterInvoices($_GET['id']) as $i => $v){
 		oftTable::row(array($v['urid_id'],$v['dat'],$v['deb_id'].' '.$v['deb_name'],'<p align="right">'.financial2str($v['sum']),'<p align="right">'.financial2str($v['nds'])));
 	}	
 	oftTable::end();	

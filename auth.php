@@ -12,23 +12,28 @@ $form_begin='
 	</form>	';
 $form_end='</body></html>';
 
-if($_SESSION['login']===null){
-	if($_POST['login']===null){
+if(!isset($_SESSION['login']) || ($_SESSION['login']===null)){
+	if(!isset($_POST['login']) || ($_POST['login']===null)){
 		echo $form_begin.$form_end;		
 	}else{
 		header('Location: index.php'/*||$_SERVER[REQUEST_URI]*/);
 		$_SESSION['login']=$_POST['login'];
 		$_SESSION['passwd']=$_POST['passwd'];
 		include "localdb.php";
-		if(localdb::connect()!=null) 
-			localdb::init_connection();
+		try{
+			$db = new localdb();
+		}catch (Exception $e) {
+			die($form_begin.$e->getMessage().$form_end);		
+		}
 	}
 	exit;
 }else{	
 	include "localdb.php";
-	if(localdb::connect()==null){
+	try{
+		$db = new localdb();
+	} catch (Exception $e) {
 		session_destroy ();
-		die($form_begin.'Ошибка подключения к БД'.$form_end);
+		die($form_begin.$e->getMessage().$form_end);		
 	}
 }	
 ?>

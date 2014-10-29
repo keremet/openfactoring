@@ -19,12 +19,16 @@ session_start();
 </head><body>
 <?php
 	include "localdb.php";
-	if(localdb::connect()==null) die('Ошибка подключения к БД');	
+	try{
+		$db = new localdb();
+	}catch (Exception $e) {
+		die($e->getMessage());		
+	}	
 	include "oft_table.php";
 
 	oftTable::init('Документы');	
 	oftTable::header(array('Номер','Дата','Сумма','Дт','Кт','Назначение платежа'));
-	foreach (localdb::getDocuments() as $i => $value) {
+	foreach ($db->getDocuments() as $i => $value) {
 		oftTable::row(array(
 			'<p align="CENTER">'.$value['id']
 , '<p align="CENTER"><font face="Liberation Mono, monospace"><font size="2">'.$value['value_date'].'</font></font></p>'
@@ -34,8 +38,7 @@ session_start();
 , '<p align="CENTER"><font face="Liberation Mono, monospace"><font size="2">'.$value['nazn_pl'].'</font></font></p>'
 ));
 	}
-	oftTable::end();	
-	localdb::disconnect();
+	oftTable::end();
 ?>
 
 </body></html>

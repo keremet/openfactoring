@@ -21,9 +21,6 @@ include "auth.php";
 include "user_styles.php";
 ?>
 </head><body dir="LTR" lang="ru-RU" link="#000080" vlink="#800000">
-<?php
-	if(localdb::connect()==null) die('Ошибка подключения к БД');
-?>
 <table style="page-break-before: always;" width="650" border="0" cellpadding="0" cellspacing="0">
 <tr valign="TOP">
 		<td>
@@ -39,20 +36,19 @@ include "user_styles.php";
 			<pre style="text-align: left;"><a href="test.php"><font face="Liberation Mono, monospace"><font size="2">Для тестирования</font></font></a></pre>
 		</td>
 		<td>
-			<pre style="text-align: left;"><font face="Liberation Mono, monospace"><font size="2"><?php echo localdb::getOperDay(); ?></font></font></pre>
+			<pre style="text-align: left;"><font face="Liberation Mono, monospace"><font size="2"><?php echo $db->getOperDay(); ?></font></font></pre>
 		</td>
 	</tr>
 </table>
 <?php
 	include "oft_table.php";
-    //include "localdb.php";
 
 	oftTable::init(((!isset($_GET['closed']))?'Действующие':'Закрытые').' договоры');
 	$header=array('Номер','Клиент','Дата подписания', 'Действия');
 	if (isset($_GET['closed']))
 		$header=oftTable::addCol($header,'3','Дата закрытия');
 	oftTable::header($header);
-	foreach (((isset($_GET['closed']))?localdb::getClosedAgrs():localdb::getAgrs()) as $i => $value) {
+	foreach (((isset($_GET['closed']))?$db->getClosedAgrs():$db->getAgrs()) as $i => $value) {
 		$row=array(
 			'<a href="agr.php?agr_id='.$value['id'].'"><p align="CENTER"><font face="Liberation Mono, monospace"><font size="2">'.$value['urid_id'].'</a>'.
 			'<a href="registers.php?agr_id='.$value['id'].'"><p align="CENTER">Реестры</a>'.
@@ -66,8 +62,7 @@ include "user_styles.php";
 			$row=oftTable::addCol($row,'3','<p align="CENTER"><font face="Liberation Mono, monospace"><font size="2">'.$value['closed'].'</font></font></p>');
 		oftTable::row($row);
 	}
-	oftTable::end();	
-	localdb::disconnect();
+	oftTable::end();
 ?>
 
 

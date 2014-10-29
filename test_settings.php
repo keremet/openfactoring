@@ -19,17 +19,21 @@ session_start();
 </head><body>
 <?php
 	include "localdb.php";
-	if(localdb::connect()==null) die('Ошибка подключения к БД');	
+	try{
+		$db = new localdb();
+	}catch (Exception $e) {
+		die($e->getMessage());		
+	}	
 ?>
 <form action="" method="post">
 <p>Дата операционного дня
 <?php
 if($_POST['date']!==null){
 	$d = $_POST['date'];	
-	localdb::setOperDay(substr($d,6,4).'-'.substr($d,3,2).'-'.substr($d,0,2));
+	$db->setOperDay(substr($d,6,4).'-'.substr($d,3,2).'-'.substr($d,0,2));
 }
 
-echo '<input  id="date" name="date" size="10" value="'.localdb::getOperDay().'" type="text"> ';
+echo '<input  id="date" name="date" size="10" value="'.$db->getOperDay().'" type="text"> ';
 ?>
 </p><p><input value="Сохранить" type="submit"> 
 

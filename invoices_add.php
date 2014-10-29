@@ -171,7 +171,11 @@ function saveInvoices(){
 </head><body dir="LTR" lang="ru-RU" onkeypress="if(event.which==13)addInvoice();" onload="document.getElementById('invoice_num').focus();">
 <?php
 	include "localdb.php";
-	if(localdb::connect()==null) die('Ошибка подключения к БД');	
+	try{
+		$db = new localdb();
+	}catch (Exception $e) {
+		die($e->getMessage());		
+	}
 ?>
 
 <table style="page-break-before: always;" width="262" border="0" cellpadding="0" cellspacing="0">
@@ -183,7 +187,7 @@ function saveInvoices(){
 			<pre style="text-align: left;"><a href="exit.php"><font face="Liberation Mono, monospace"><font size="2">Выход</font></font></a></pre>
 		</td>
 		<td>
-			<pre style="text-align: left;"><font face="Liberation Mono, monospace"><font size="2"><?php echo localdb::getOperDay(); ?></font></font></pre>
+			<pre style="text-align: left;"><font face="Liberation Mono, monospace"><font size="2"><?php echo $db->getOperDay(); ?></font></font></pre>
 		</td>		
 	</tr>
 </table>
@@ -191,11 +195,11 @@ function saveInvoices(){
 Сумма накладной<input id="invoice_sum" size="10"  maxlength="10" type="text" onkeyup="return proverka_fin(this);" onchange="return proverka_fin(this);">  НДС<input id="NDS" size="10"  maxlength="10" type="text" onfocus="calcNDS();" onkeyup="return proverka_fin(this);" onchange="return proverka_fin(this);">
 <p>Дебитор <select id="debitor" onchange="document.getElementById('pair_lim').value = financial2str(this.options[this.selectedIndex].value.split('_')[1])">
 <?php
-	$debs = localdb::getDebitors($_GET['agr_id']);
+	$debs = $db->getDebitors($_GET['agr_id']);
 	if(count($debs)>1)
 		echo "<option selected disabled>Выберите дебитора</option>";
 	foreach ($debs as $i => $value) {
-		$debAvailLim = $value['lim'] - localdb::getDebUsedLimit($_GET['agr_id'], $value['cust_id']);
+		$debAvailLim = $value['lim'] - $db->getDebUsedLimit($_GET['agr_id'], $value['cust_id']);
 		echo  "<option value=\"".$value['cust_id']."_".$debAvailLim."\">".$value['NAME_CYR']."</option>";
 	}
 ?>
@@ -215,8 +219,7 @@ echo "<form enctype=\"multipart/form-data\" action=\"".$_SERVER['REQUEST_URI']."
 </form>
 <p align="center"><font size="4"><b>	
 <?php
-	echo "Новые накладные договорa ".localdb::getAgrUridId($_GET['agr_id']);
-	localdb::disconnect();
+	echo "Новые накладные договорa ".$db->getAgrUridId($_GET['agr_id']);
 ?>
 </b></font></p></pre>
 <table id="tblNewInvoices" width="100%" border="1" bordercolor="#000000" cellpadding="4" cellspacing="0">
@@ -279,15 +282,15 @@ if($_GET['agr_id']=='1')
 		fclose($fp);
 	}
 	if (isset($_POST['f_si_invoices'])){
-		localdb::deleteNewInvoices($_GET['agr_id']);
+		$db->deleteNewInvoices($_GET['agr_id']);
 		foreach(json_decode($_POST['f_si_invoices'],true) as $i => $v){
-			$error = localdb::insertInvoice($_GET['agr_id'], $v['num'], $v['dat'], $v['deb'],$v['sum'], $v['nds']);
-			if($error){
-				echo 'alert("Не была сохранена накладная '.$v['num'].': '.$error.'");';
+			$err = $db->insertInvoice($_GET['agr_id'], $v['num'], $v['dat'], $v['deb'],$v['sum'], $v['nds']);
+			if($err!==null){
+				echo 'alert("Не была сохранена накладная '.$v['num'].': '.$err.'");';
 			}		
 		}
 	}
-	foreach(localdb::getNewInvoices($_GET['agr_id']) as $i => $v){
+	foreach($db->getNewInvoices($_GET['agr_id']) as $i => $v){
 		echo "checkAndAddInvoice('".$v['urid_id']."', '".$v['dat']."', '".$v['deb_id'].' '.$v['deb_name']."', ".$v['sum'].", ".$v['nds'].");";
 	}
 	

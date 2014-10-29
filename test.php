@@ -7,8 +7,6 @@
 <p><a href="test_accounts.php">Счета</a>
 <p><a href="test_settings.php">Настройки текущего пользователя</a>
 <?php
-include "localdb.php";
-echo localdb::getAccountAmount('91418810000000000133');
 phpinfo(); 
 ?>
 </body>

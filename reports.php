@@ -122,50 +122,59 @@ class FCTXML {
 	}   
 }
 
+try{
+	$db = new localdb();
+}catch (Exception $e) {
+	die($e->getMessage());		
+}
+
+
 function create_registry($agr_id){
-	if(localdb::connect()==null) die('Ошибка подключения к БД');
 	$reg_sum = 0;
 	$reg_nds_sum = 0;	
-	$agr = localdb::getAgr($agr_id);
+	global $db;
+	$agr = $db->getAgr($agr_id);
 	$reg_id = 0;
 	$sum47401 = 0;
 	$com_nds = 0;
 	$com_doh = 0;
-	foreach(localdb::getNewInvoices($_GET['agr_id']) as $i => $v){
+	foreach($db->getNewInvoices($_GET['agr_id']) as $i => $v){
 		if($reg_id==0)
-			$reg_id = localdb::incRegNum($agr_id);
-		$acc47803 = localdb::createAccount('47803', $v['deb_id'], $v['deb_name']);
-		$acc91418 = localdb::createAccount('91418', $v['deb_id'], $v['deb_name']);
-		localdb::updateInvoice($v['id'], $acc47803, $acc91418, $reg_id, $v['srok_otsr']);
+			$reg_id = $db->incRegNum($agr_id);
+		$acc47803 = $db->createAccount('47803', $v['deb_id'], $v['deb_name']);
+		$acc91418 = $db->createAccount('91418', $v['deb_id'], $v['deb_name']);
+		$db->updateInvoice($v['id'], $acc47803, $acc91418, $reg_id, $v['srok_otsr']);
 		$sum47803 = round($v['sum']*0.9);
-		localdb::insertDocument($agr_id, 'ПОСТ_БАЛАНС', '09', $sum47803, $acc47803, $agr['acc47401'], 'Приобретение прав требования по Реестру № '.$agr['next_reg_num'].' накладная '.$v['urid_id']);
-		localdb::insertDocument($agr_id, 'ПОСТ_ВНЕБАЛАНС', '09', $v['sum'], $acc91418, localdb::acc99999, 'Постановка на внебаланс по Реестру № '.$agr['next_reg_num'].' накладная '.$v['urid_id']);
+		$db->insertDocument($agr_id, 'ПОСТ_БАЛАНС', '09', $sum47803, $acc47803, $agr['acc47401'], 'Приобретение прав требования по Реестру № '.$agr['next_reg_num'].' накладная '.$v['urid_id']);
+		$db->insertDocument($agr_id, 'ПОСТ_ВНЕБАЛАНС', '09', $v['sum'], $acc91418, localdb::acc99999, 'Постановка на внебаланс по Реестру № '.$agr['next_reg_num'].' накладная '.$v['urid_id']);
 		$reg_sum += $v['sum'];
 		$reg_nds_sum += $v['nds'];
 		$sum47401 += $sum47803;
 		
-		$percentCom1 = localdb::getCom1($agr_id, $v['deb_id']);
+		$percentCom1 = $db->getCom1($agr_id, $v['deb_id']);
 		$com_nds += round($sum47803*$percentCom1/100*0.18);
         $com_doh += round($sum47803*$percentCom1/100);
 	}	
 	if($sum47401>0){
-		$doc_47401_rs = localdb::insertDocument($agr_id, 'ОПЛАТА_НА_РС', '09', $sum47401, $agr['acc47401'], $agr['acc_cur']
-			, 'Оплата прав требования по Реестру № '.$agr['next_reg_num'].' от '.localdb::getOperDay().', в т.ч. НДС '.($reg_nds_sum/100).' руб.');
+		$doc_47401_rs = $db->insertDocument($agr_id, 'ОПЛАТА_НА_РС', '09', $sum47401, $agr['acc47401'], $agr['acc_cur']
+			, 'Оплата прав требования по Реестру № '.$agr['next_reg_num'].' от '.$db->getOperDay().', в т.ч. НДС '.($reg_nds_sum/100).' руб.');
 		if($com_nds+$com_doh>0){
-			$doc_rs_60311 = localdb::insertDocument($agr_id, 'КОМ_И_НДС', '09', $com_nds+$com_doh, $agr['acc_cur'], localdb::acc60311
-				, 'Единовременная комиссия по Договору факторинга № '.$agr['urid_id'].', Реестр № '.$agr['next_reg_num'].' от '.localdb::getOperDay().', в т.ч. НДС '.($reg_nds_sum/100).' руб.');		
-			$doc_60311_70601 = localdb::insertDocument($agr_id, 'КОМ', '09', $com_doh, localdb::acc60311, localdb::acc70601
+			$doc_rs_60311 = $db->insertDocument($agr_id, 'КОМ_И_НДС', '09', $com_nds+$com_doh, $agr['acc_cur'], localdb::acc60311
+				, 'Единовременная комиссия по Договору факторинга № '.$agr['urid_id'].', Реестр № '.$agr['next_reg_num'].' от '.$db->getOperDay().', в т.ч. НДС '.($reg_nds_sum/100).' руб.');		
+			$doc_60311_70601 = $db->insertDocument($agr_id, 'КОМ', '09', $com_doh, localdb::acc60311, localdb::acc70601
 				, 'Отнесение на доходы единовременной комиссии по факторинговым операциям, '.$agr['name_cyr']);
-			$doc_60311_60309 = localdb::insertDocument($agr_id, 'НДС', '09', $com_nds, localdb::acc60311, localdb::acc60309
+			$doc_60311_60309 = $db->insertDocument($agr_id, 'НДС', '09', $com_nds, localdb::acc60311, localdb::acc60309
 				, 'Отражение НДС по факторинговым операциям, '.$agr['name_cyr']);
-			localdb::setRegComDocs($reg_id, $doc_47401_rs, $doc_rs_60311, $doc_60311_70601, $doc_60311_60309);
+			$db->setRegComDocs($reg_id, $doc_47401_rs, $doc_rs_60311, $doc_60311_70601, $doc_60311_60309);
 		}
 	}
 	return ($reg_sum>0)?$reg_id:null;
 }
 
-function addSignatures(&$fctxml){    
-    $info = localdb::getUserInfo($_SESSION['login']);
+function addSignatures(&$fctxml){  
+	global $db;  
+	
+    $info = $db->getUserInfo();
 	$fctxml->replaceField('user_job', $info['job']);
 	$fctxml->replaceField('user_name', $info['fio']);
     $fctxml->replaceField('user_nach_job', 'Начальник кредитного отдела');
@@ -173,10 +182,12 @@ function addSignatures(&$fctxml){
 }
 
 function new_registry_rasp_base($reg_id){
+	global $db;  
+	
 	$fctxml = new FCTXML('FCT_NEW_REGISTRY.ODT');
     addSignatures($fctxml);   
-    $reg = localdb::getRegister($reg_id);
-    $agr = localdb::getAgr($reg['agr_id']);
+    $reg = $db->getRegister($reg_id);
+    $agr = $db->getAgr($reg['agr_id']);
     $fctxml->replaceField('dog_fact','№ '.$agr['urid_id'].' от '.$agr['signed_h']);
     $fctxml->replaceField('client', $agr['name_cyr']);
     $fctxml->replaceField('inn', $agr['inn']);
@@ -198,12 +209,12 @@ function new_registry_rasp_base($reg_id){
 	$sumB=0;
 	$sumVB=0;
 	$v_nds_from_nakl=0;
-	foreach(localdb::getRegisterInvoices($reg_id) as $i => $v){
+	foreach($db->getRegisterInvoices($reg_id) as $i => $v){
 		$v_nakl_num++;
 		if($v_nakladnye!="")
 			$v_nakladnye.=', ';
 		$v_nakladnye.=$v['urid_id'];
-		$debOb=localdb::getDebOb($v['acc47803']);
+		$debOb=$db->getDebOb($v['acc47803']);
 		$sumB+=$debOb;
 		$sumVB+=$v['sum'];
 		$v_nds_from_nakl+=$v['nds'];
@@ -287,19 +298,21 @@ function new_registry($agr_id){
 }
 
 function do_repay_agr($agr_id){
-	$operDayJ = localdb::getOperDayJ();
-	$header_id = localdb::insertRepayHeader($agr_id);
-	$agr = localdb::getAgr($agr_id);	
-	foreach (localdb::getDebitors($agr_id) as $i => $value) {
-		$amount61212 = localdb::getAccountAmount($value['acc61212']);
+	global $db;  
+	
+	$operDayJ = $db->getOperDayJ();
+	$header_id = $db->insertRepayHeader($agr_id);
+	$agr = $db->getAgr($agr_id);	
+	foreach ($db->getDebitors($agr_id) as $i => $value) {
+		$amount61212 = $db->getAccountAmount($value['acc61212']);
 		if($amount61212==0)
 			continue;
 			//~ echo "amount61212 = $amount61212;";
-		foreach (localdb::getDebInv4Repay($agr_id, $value['cust_id']) as $i_inv => $value_inv) { //!!!!!!!Переписать getDebInv4Repay
-			$a91418_amount=abs(localdb::getAccountAmount($value_inv['acc91418']));
+		foreach ($db->getDebInv4Repay($agr_id, $value['cust_id']) as $i_inv => $value_inv) { //!!!!!!!Переписать getDebInv4Repay
+			$a91418_amount=abs($db->getAccountAmount($value_inv['acc91418']));
 			if($a91418_amount==0)
 				continue;
-			$a47803_amount=abs(localdb::getAccountAmount($value_inv['acc47803']));
+			$a47803_amount=abs($db->getAccountAmount($value_inv['acc47803']));
 			if($a47803_amount==0)
 				continue;
 			$days = $operDayJ-$value_inv['register_d'];
@@ -317,28 +330,28 @@ function do_repay_agr($agr_id){
 			$sum_nds=round($sum_doh*0.18); 		
 			$doc_61212_70601 = 0;
 			$doc_61212_60309 = 0;
-			$doc_61212_47803 = localdb::insertDocument($agr_id, 'ПОГ', '09', $sum_ssud, $value['acc61212'], $value_inv['acc47803']
+			$doc_61212_47803 = $db->insertDocument($agr_id, 'ПОГ', '09', $sum_ssud, $value['acc61212'], $value_inv['acc47803']
 				, 'Погашение приобретенных прав требования по договору поставки № '.$value['deliv_agr_id'].' накладная № '.$value_inv['urid_id']);
 			
 			if($sum_doh>0){
-				$doc_61212_70601 = localdb::insertDocument($agr_id, 'ПОГ', '09', $sum_doh, $value['acc61212'], localdb::acc70601
+				$doc_61212_70601 = $db->insertDocument($agr_id, 'ПОГ', '09', $sum_doh, $value['acc61212'], localdb::acc70601
 				, 'Отнесение финансового результата на счета учета доходов от проведения факторинговых операций по договору поставки № '.$value['deliv_agr_id']
 					.' накладная № '.$value_inv['urid_id']);
 			}
 			if($sum_nds>0){
-				$doc_61212_60309 = localdb::insertDocument($agr_id, 'ПОГ', '09', $sum_nds, $value['acc61212'], localdb::acc60309
+				$doc_61212_60309 = $db->insertDocument($agr_id, 'ПОГ', '09', $sum_nds, $value['acc61212'], localdb::acc60309
 				, 'Отражение НДС по доходам от проведения факторинговых операций по договору поставки № '.$value['deliv_agr_id'].' накладная № '.$value_inv['urid_id']);
 			}
 			
 			$sum_rs=$sum_vb-($sum_ssud+$sum_doh+$sum_nds);
 			
-			$doc_61212_rs = localdb::insertDocument($agr_id, 'ПОГ', '09', $sum_rs, $value['acc61212'], $agr['acc_cur']
+			$doc_61212_rs = $db->insertDocument($agr_id, 'ПОГ', '09', $sum_rs, $value['acc61212'], $agr['acc_cur']
 				, 'Выплата второго платежа по факторинговым операциям по договору поставки № '.$value['deliv_agr_id'].' накладная № '.$value_inv['urid_id']);
 
-			$doc_91418 = localdb::insertDocument($agr_id, 'ПОГ', '09', $sum_vb, localdb::acc99999, $value_inv['acc91418']
+			$doc_91418 = $db->insertDocument($agr_id, 'ПОГ', '09', $sum_vb, localdb::acc99999, $value_inv['acc91418']
 				, 'Списание номинальной стоимости по накладной № '.$value_inv['urid_id'].' '.$value['NAME_CYR'].'/ '.$value_inv['acc47803']);
 								
-  			localdb::insertRepayEntry($header_id, $value_inv['id'], $doc_61212_47803, $doc_61212_70601, $doc_61212_60309, $doc_61212_rs, $doc_91418);	
+  			$db->insertRepayEntry($header_id, $value_inv['id'], $doc_61212_47803, $doc_61212_70601, $doc_61212_60309, $doc_61212_rs, $doc_91418);	
 		}		
 	}	
 }
